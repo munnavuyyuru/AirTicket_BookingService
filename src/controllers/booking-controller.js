@@ -8,7 +8,7 @@ const create = async (req, res) => {
     const response = await bookingService.createBooking(req.body);
     console.log("Inside the booking controller : ", response);
     return res.status(StatusCodes.OK).json({
-      data: response.data,
+      data: response,
       success: true,
       message: "successfully booked a flight",
       error: {},

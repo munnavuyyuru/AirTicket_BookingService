@@ -22,7 +22,7 @@ class BookingService {
       const response = await axios.get(getFlightRequestURL);
 
       const flightData = response.data.data;
-      let priceOfFlight = flightData.price;
+      let priceOfTheFlight = flightData.price;
 
       if (data.noOfSeats > flightData.totalSeats) {
         throw new ServiceError(
@@ -30,8 +30,30 @@ class BookingService {
           "Insufficient seats in the flight"
         );
       }
-      return response.data;
+
+      const totalCost = priceOfTheFlight * data.noOfSeats;
+      const bookingPayload = { ...data, totalCost };
+      const booking = await this.bookingRepository.create(bookingPayload);
+
+      const updateFlightRequestURL = `${FLIGHT_SERVICE_PATH}/api/v1/flights/${booking.flightId}`;
+
+      // console.log("UPDATED FLIHGTH REQ", updateFlightRequestURL);
+      // console.log(flightData.totalSeats - booking.noOfSeats);
+      await axios.patch(updateFlightRequestURL, {
+        totalSeats: flightData.totalSeats - booking.noOfSeats,
+      });
+
+      const finalBooking = await this.bookingRepository.update(booking.id, {
+        status: "Booked",
+      });
+      return finalBooking;
     } catch (error) {
+      if (
+        error.name === "ValidationError" ||
+        error.name === "RepositoryError"
+      ) {
+        throw error;
+      }
       throw new ServiceError();
     }
   }
